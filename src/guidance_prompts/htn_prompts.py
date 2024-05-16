@@ -1,11 +1,10 @@
 import guidance
 from guidance import models, gen, system, user, assistant, select
-from src.utils import comma_seperated_items
-import os
+from utils import comma_seperated_items
 
 guidance_gpt4_api = None
-lm = models.OpenAI('gpt-3.5-turbo')
 
+lm = models.TransformersChat("NousResearch/Nous-Hermes-2-Mistral-7B-DPO")
 
 # Add new functions for extracting and suggesting new queries here
 def extract_and_format_information(lm, webpage_content):
@@ -138,7 +137,6 @@ def update_plan_output(task_name, task_description, elapsed_time, time_limit, co
 
 
 def confirm_deliverable_changes(lm, deliverable_content, updated_content):
-    confirm_choices = ['yes', 'no']
 
     with system():
         lm += "You are a helpful agent"
@@ -156,7 +154,7 @@ def confirm_deliverable_changes(lm, deliverable_content, updated_content):
         '''
 
     with assistant():
-        lm += gen("confirm")
+        lm += gen("confirm") + select(['yes', 'no'])
 
     return lm['confirm']
 
@@ -183,8 +181,6 @@ def translate(lm, original_task, capabilities_input):
 
 @guidance
 def is_task_primitive(lm, task_name, capabilities_text):
-    task_types = ['primitive', 'compound']
-
     with system():
         lm += "You are a helpful agent"
 
@@ -198,7 +194,7 @@ def is_task_primitive(lm, task_name, capabilities_text):
     with assistant():
         lm += gen("choice")
 
-    return lm['choice']
+    return lm + select(['primitive', 'compound'])
 
 
 def evaluate_candidate(lm, task, subtasks, capabilities_input):
@@ -213,11 +209,10 @@ def evaluate_candidate(lm, task, subtasks, capabilities_input):
         {capabilities_input}
         Return a score between 0 and 1, where 1 is the best possible score.
         
-        Please follow this regex expression: ^[0]\.\d{{8}}$
         Score:
         '''
 
     with assistant():
-        lm += gen("score", temperature=0.5, max_tokens=10)
+        lm += gen("score", temperature=0.5, max_tokens=10, regex='^[0]\.\d{{8}}$')
 
     return lm['score']

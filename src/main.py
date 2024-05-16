@@ -4,14 +4,15 @@ from flask import Flask
 from flask_cors import CORS
 from flask_socketio import SocketIO
 from htn_planner import HTNPlanner
-from search_planner import SearchPlanner
 from guidance import models
 
 from gpt4_utils import get_initial_task, compress_capabilities
 from text_utils import trace_function_calls
 
+import openai
+
 app = Flask(__name__)
-CORS(app)  # Add this line to enable CORS
+CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 @trace_function_calls
@@ -49,7 +50,6 @@ def print_plan(task_node, depth=0):
         print_plan(child, depth + 1)
 
 def main(fast_run=False):
-    # Clear the log file at the beginning of each run
     with open('function_trace.log', 'w') as log_file:
         log_file.write("")
 
@@ -69,35 +69,18 @@ def main(fast_run=False):
     else:
         capabilities_input = input("Describe the capabilities available (press Enter to use default): ")
 
-    # Use default capabilities if the user doesn't provide any input
     if not capabilities_input.strip():
         capabilities_input = default_capabilities
 
     goal_task = get_initial_task(goal_input)
     compressed_capabilities = compress_capabilities(capabilities_input)
 
-    if fast_run:
-        planner_choice = "1"
-    else:
-        planner_choice = input("Choose planner: (1) HTN Planner (default), (2) A* Search Planner: ").strip()
-    if planner_choice == "2":
-        use_search_planner = True
-        print("A* search planner selected")
-    else:
-        print("HTN planner selected")
-        use_search_planner = False
-
     server_thread = threading.Thread(target=run_server)
     server_thread.start()
     print("Starting planning with the initial goal task:", goal_task)
 
-    if use_search_planner:
-        search_planner = SearchPlanner(initial_state_input, goal_task, compressed_capabilities, 5000,
-                                       send_task_node_update)
-        plan = search_planner.plan()
-    else:
-        htn_planner = HTNPlanner(initial_state_input, goal_task, compressed_capabilities, 5, send_task_node_update, models.OpenAI('gpt-3.5-turbo'))
-        plan = htn_planner.htn_planning()
+    htn_planner = HTNPlanner(initial_state_input, goal_task, compressed_capabilities, 5, send_task_node_update)
+    plan = htn_planner.htn_planning()
 
     if plan:
         print("Plan found:")
@@ -106,5 +89,4 @@ def main(fast_run=False):
         print("No plan found.")
 
 if __name__ == '__main__':
-    # Run the main function
-    main(fast_run=True)
+    main(fast_run=False)

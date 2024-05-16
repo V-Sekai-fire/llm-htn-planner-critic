@@ -30,11 +30,9 @@ def get_initial_task(goal):
 
 
 @trace_function_calls
-def is_task_primitive(lm, task_name, capabilities_text):
-    response = lm + htn_prompts.is_task_primitive(task_name=task_name, capabilities_text=capabilities_text)
-
-    task_type = response.strip()
-    return task_type == "primitive"
+def is_task_primitive(task_name, capabilities_text):
+    response = htn_prompts.is_task_primitive(task_name, capabilities_text)
+    return response == "primitive"
 
 
 @trace_function_calls

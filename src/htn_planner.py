@@ -9,20 +9,19 @@ from text_utils import extract_lists, trace_function_calls
 from guidance_prompts import htn_prompts
 from guidance import models
 
-
 class HTNPlanner:
     def __init__(self, initial_state, goal_task, capabilities_input, max_depth=5, send_update_callback=None,
-                 lm=models.OpenAI('gpt-3.5-turbo')):
+                 ):
         self.initial_state = initial_state
         self.goal_task = goal_task
         self.capabilities_input = capabilities_input
         self.max_depth = max_depth
         self.send_update_callback = send_update_callback
-        self.lm = lm
+        self.lm = models.OpenAI("gpt-4o")
 
     def htn_planning(self):
         # Storage for successful task_node's so that they don't need to get regenerated for similar inputs
-        db = None  # db = VectorDB()
+        db = None
         root_node = TaskNode(self.goal_task)
         while self.replan_required(self.initial_state, self.goal_task, root_node):
             root_node = self.htn_planning_recursive(
@@ -99,7 +98,7 @@ class HTNPlanner:
         if remaining_decompositions == 0:
             return True, decompose_state
         else:
-            if is_task_primitive(self.lm, task, capabilities_input):
+            if is_task_primitive(task, capabilities_input):
                 # Translate the task before checking if it can be executed
                 translated_task = self.translate_task(task, capabilities_input)
 
