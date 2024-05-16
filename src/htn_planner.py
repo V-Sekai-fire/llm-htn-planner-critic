@@ -1,23 +1,23 @@
-# An implementation of HTN using the GPT-4 API
+# An implementation of HTN using llms.
 # Due to the expressiveness of language, a lot of steps that would generally require complex functions are left up
 # to the LLM
 
-from gpt4_utils import gpt4_is_goal, is_task_primitive, can_execute, log_state_change
-from openai_api import call_openai_api, log_response
+from llm_utils import is_goal, is_task_primitive, can_execute, log_state_change
 from task_node import TaskNode
 from text_utils import extract_lists, trace_function_calls
 from guidance_prompts import htn_prompts
 from guidance import models
+from api import log_response
 
 class HTNPlanner:
-    def __init__(self, initial_state, goal_task, capabilities_input, max_depth=5, send_update_callback=None,
+    def __init__(self, initial_state, goal_task, capabilities_input, max_depth=5, send_update_callback=None, lm=None
                  ):
         self.initial_state = initial_state
         self.goal_task = goal_task
         self.capabilities_input = capabilities_input
         self.max_depth = max_depth
         self.send_update_callback = send_update_callback
-        self.lm = models.OpenAI("gpt-4o")
+        self.lm = lm
 
     def htn_planning(self):
         # Storage for successful task_node's so that they don't need to get regenerated for similar inputs
@@ -38,7 +38,7 @@ class HTNPlanner:
     @trace_function_calls
     def htn_planning_recursive(self, state, goal_task, root_node, max_depth, capabilities_input, db,
                                send_update_callback=None):
-        if gpt4_is_goal(state, goal_task):
+        if is_goal(state, self.lm, goal_task):
             return root_node
 
         if send_update_callback:
@@ -57,7 +57,7 @@ class HTNPlanner:
 
     @trace_function_calls
     def replan_required(self, state, goal_task, task_node):
-        if gpt4_is_goal(state, goal_task):
+        if is_goal(state, self.lm, goal_task):
             return False
         if task_node is None or task_node.children == []:
             return True

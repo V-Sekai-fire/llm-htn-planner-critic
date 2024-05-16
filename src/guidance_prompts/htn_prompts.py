@@ -2,9 +2,7 @@ import guidance
 from guidance import models, gen, system, user, assistant, select
 from utils import comma_seperated_items
 
-guidance_gpt4_api = None
-
-lm = models.TransformersChat("NousResearch/Nous-Hermes-2-Mistral-7B-DPO")
+guidance_api = None
 
 # Add new functions for extracting and suggesting new queries here
 def extract_and_format_information(lm, webpage_content):
@@ -68,7 +66,7 @@ def suggest_new_query(query):
     {{#system~}}You are a helpful assistant.{{~/system}}
     {{#user~}}Suggest a new query to find the missing information based on the initial query: {{query}}{{~/user}}
     {{#assistant}}{{gen "new_query"}}{{/assistant}}''',
-                         llm=guidance_gpt4_api)
+                         llm=guidance_api)
 
     output = new_query(query=query)
 

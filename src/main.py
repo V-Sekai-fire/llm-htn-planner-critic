@@ -6,7 +6,7 @@ from flask_socketio import SocketIO
 from htn_planner import HTNPlanner
 from guidance import models
 
-from gpt4_utils import get_initial_task, compress_capabilities
+from llm_utils import get_initial_task, compress_capabilities
 from text_utils import trace_function_calls
 
 import openai
@@ -72,14 +72,16 @@ def main(fast_run=False):
     if not capabilities_input.strip():
         capabilities_input = default_capabilities
 
-    goal_task = get_initial_task(goal_input)
-    compressed_capabilities = compress_capabilities(capabilities_input)
+    lm=models.TransformersChat("NousResearch/Nous-Hermes-2-Mistral-7B-DPO")
+
+    goal_task = get_initial_task(lm, goal_input)
+    compressed_capabilities = compress_capabilities(lm, capabilities_input)
 
     server_thread = threading.Thread(target=run_server)
     server_thread.start()
     print("Starting planning with the initial goal task:", goal_task)
 
-    htn_planner = HTNPlanner(initial_state_input, goal_task, compressed_capabilities, 5, send_task_node_update)
+    htn_planner = HTNPlanner(initial_state_input, goal_task, compressed_capabilities, 5, send_task_node_update, lm)
     plan = htn_planner.htn_planning()
 
     if plan:
